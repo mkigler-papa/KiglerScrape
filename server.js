@@ -1,30 +1,24 @@
 require('dotenv').config();
 const express = require('express');
-const Database = require('better-sqlite3');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const Anthropic = require('@anthropic-ai/sdk');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const db = new Database('links.db');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const DATA_FILE = path.join(__dirname, 'links.json');
 
-// Initialize database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT NOT NULL,
-    title TEXT,
-    summary TEXT,
-    tags TEXT,
-    thumbnail TEXT,
-    domain TEXT,
-    upvotes INTEGER DEFAULT 0,
-    downvotes INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+// Simple JSON file database
+function readDB() {
+  if (!fs.existsSync(DATA_FILE)) return { links: [], nextId: 1 };
+  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
+  catch (e) { return { links: [], nextId: 1 }; }
+}
+function writeDB(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -32,23 +26,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 // GET all links
 app.get('/api/links', (req, res) => {
   const { sort = 'new' } = req.query;
-  let orderBy = 'created_at DESC';
-  if (sort === 'top') orderBy = '(upvotes - downvotes) DESC';
-  if (sort === 'hot') orderBy = '(upvotes * 2 - downvotes + (unixepoch() - unixepoch(created_at)) / -3600) DESC';
+  const db = readDB();
+  let links = [...db.links];
 
-  let links = db.prepare(`SELECT * FROM links ORDER BY ${orderBy}`).all();
-  links = links.map(link => ({ ...link, tags: link.tags ? JSON.parse(link.tags) : [] }));
+  if (sort === 'new') links.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  if (sort === 'top') links.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
+  if (sort === 'hot') {
+    const now = Date.now();
+    links.sort((a, b) => {
+      const scoreA = (a.upvotes * 2 - a.downvotes) - (now - new Date(a.created_at)) / 3600000;
+      const scoreB = (b.upvotes * 2 - b.downvotes) - (now - new Date(b.created_at)) / 3600000;
+      return scoreB - scoreA;
+    });
+  }
   res.json(links);
-});
-
-// GET all unique tags
-app.get('/api/tags', (req, res) => {
-  const links = db.prepare('SELECT tags FROM links').all();
-  const tagSet = new Set();
-  links.forEach(link => {
-    if (link.tags) JSON.parse(link.tags).forEach(t => tagSet.add(t));
-  });
-  res.json([...tagSet].sort());
 });
 
 // POST add a new link
@@ -88,7 +79,21 @@ app.post('/api/links', async (req, res) => {
         max_tokens: 600,
         messages: [{
           role: 'user',
-          content: `Analyze this webpage and respond ONLY with valid JSON (no extra text).\n\nURL: ${normalUrl}\nPage title: ${ogTitle || metaTitle}\nMeta description: ${ogDesc || metaDesc}\nContent preview: ${bodyText}\n\nRespond with this exact JSON structure:\n{\n  "title": "concise descriptive title (max 120 chars)",\n  "summary": "2-3 sentence summary of what this page is about and why it might be interesting",\n  "tags": ["tag1", "tag2", "tag3"]\n}\n\nRules for tags: 3-6 lowercase tags, single words or short hyphenated phrases, descriptive of content/topic.`
+          content: `Analyze this webpage and respond ONLY with valid JSON (no extra text).
+
+URL: ${normalUrl}
+Page title: ${ogTitle || metaTitle}
+Meta description: ${ogDesc || metaDesc}
+Content preview: ${bodyText}
+
+Respond with this exact JSON structure:
+{
+  "title": "concise descriptive title (max 120 chars)",
+  "summary": "2-3 sentence summary of what this page is about and why it might be interesting",
+  "tags": ["tag1", "tag2", "tag3"]
+}
+
+Rules for tags: 3-6 lowercase tags, single words or short hyphenated phrases, descriptive of content/topic.`
         }]
       });
 
@@ -102,12 +107,21 @@ app.post('/api/links', async (req, res) => {
       }
     }
 
-    const result = db.prepare(
-      'INSERT INTO links (url, title, summary, tags, thumbnail, domain) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(normalUrl, aiTitle, aiSummary, JSON.stringify(aiTags), ogImage, domain);
-
-    const link = db.prepare('SELECT * FROM links WHERE id = ?').get(result.lastInsertRowid);
-    link.tags = JSON.parse(link.tags || '[]');
+    const db = readDB();
+    const link = {
+      id: db.nextId++,
+      url: normalUrl,
+      title: aiTitle,
+      summary: aiSummary,
+      tags: aiTags,
+      thumbnail: ogImage,
+      domain,
+      upvotes: 0,
+      downvotes: 0,
+      created_at: new Date().toISOString()
+    };
+    db.links.push(link);
+    writeDB(db);
     res.json(link);
   } catch (error) {
     console.error('Error adding link:', error.message);
@@ -117,18 +131,23 @@ app.post('/api/links', async (req, res) => {
 
 // PUT vote
 app.put('/api/links/:id/vote', (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   const { type } = req.body;
-  if (type === 'up')   db.prepare('UPDATE links SET upvotes   = upvotes   + 1 WHERE id = ?').run(id);
-  if (type === 'down') db.prepare('UPDATE links SET downvotes = downvotes + 1 WHERE id = ?').run(id);
-  const link = db.prepare('SELECT * FROM links WHERE id = ?').get(id);
-  link.tags = JSON.parse(link.tags || '[]');
+  const db = readDB();
+  const link = db.links.find(l => l.id === id);
+  if (!link) return res.status(404).json({ error: 'Not found' });
+  if (type === 'up')   link.upvotes++;
+  if (type === 'down') link.downvotes++;
+  writeDB(db);
   res.json(link);
 });
 
 // DELETE link
 app.delete('/api/links/:id', (req, res) => {
-  db.prepare('DELETE FROM links WHERE id = ?').run(req.params.id);
+  const id = parseInt(req.params.id);
+  const db = readDB();
+  db.links = db.links.filter(l => l.id !== id);
+  writeDB(db);
   res.json({ success: true });
 });
 
