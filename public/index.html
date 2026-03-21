@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KiglerScrape</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <header class="topnav">
+    <div class="topnav-inner">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 20 20" fill="currentColor">
+          <circle cx="10" cy="10" r="10"/>
+          <path d="M16.67 10a1.46 1.46 0 0 0-2.47-1 7.12 7.12 0 0 0-3.85-1.23l.65-3.07 2.13.45a1 1 0 1 0 .08-.49L10.9 4.2a.12.12 0 0 0-.14.09l-.73 3.43a7.14 7.14 0 0 0-3.89 1.23 1.46 1.46 0 1 0-1.61 2.39 2.87 2.87 0 0 0 0 .44c0 2.24 2.61 4.06 5.83 4.06s5.83-1.82 5.83-4.06a2.87 2.87 0 0 0 0-.44 1.46 1.46 0 0 0 .48-1.34zM7.27 10.8a1 1 0 1 1 1 1 1 1 0 0 1-1-1zm5.58 2.64a3.57 3.57 0 0 1-2.49.73 3.57 3.57 0 0 1-2.49-.73.12.12 0 0 1 .17-.17 3.21 3.21 0 0 0 2.32.6 3.21 3.21 0 0 0 2.32-.6.12.12 0 1 1 .17.17zm-.17-1.61a1 1 0 1 1 1-1 1 1 0 0 1-1 1z" fill="white"/>
+        </svg>
+        <span class="logo-text">KiglerScrape</span>
+      </div>
+
+      <div class="search-bar">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" type="text" placeholder="Search KiglerScrape" />
+      </div>
+
+      <button class="btn-add-top" id="btnOpenModal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Link
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <div class="layout">
+
+    <!-- FEED -->
+    <main class="feed-col">
+      <div class="sort-bar">
+        <button class="sort-btn active" data-sort="new">New</button>
+        <button class="sort-btn" data-sort="top">Top</button>
+        <button class="sort-btn" data-sort="hot">Hot</button>
+      </div>
+
+      <div class="tag-filter-bar" id="tagFilterBar" style="display:none">
+        <span>Filtered by:</span>
+        <span class="active-tag-chip" id="activeTagChip"></span>
+        <button id="clearTagFilter">&#x2715; Clear</button>
+      </div>
+
+      <div id="postsList"></div>
+
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="30" stroke="#edeff1" stroke-width="3"/>
+          <path d="M32 20v14M32 38v2" stroke="#878a8c" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <h3>No links yet</h3>
+        <p>Add your first link using the button above!</p>
+      </div>
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">About KiglerScrape</div>
+        <div class="sidebar-card-body">
+          <p>Your personal link curation hub. Add any URL and get an AI-powered title, summary, and tags automatically.</p>
+          <button class="btn-submit full-width" id="btnOpenModal2">+ Add a Link</button>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">Filter by Tag</div>
+        <div class="sidebar-card-body">
+          <div id="tagCloud" class="tag-cloud"><em style="color:#878a8c;font-size:13px">No tags yet</em></div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">Stats</div>
+        <div class="sidebar-card-body stats">
+          <div><span id="statLinks">0</span><small>Links saved</small></div>
+          <div><span id="statTags">0</span><small>Unique tags</small></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ADD LINK MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add a Link</h2>
+        <button class="modal-close" id="modalClose">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <label for="urlInput">URL</label>
+        <input id="urlInput" type="url" placeholder="https://example.com" autocomplete="url" />
+        <p class="hint">The title, summary, and tags will be generated automatically using AI.</p>
+        <button class="btn-submit" id="btnSubmit">Add Link</button>
+        <div class="modal-loader" id="modalLoader">
+          <div class="spinner"></div>
+          <span>Fetching page &amp; generating AI summary&hellip;</span>
+        </div>
+        <div class="modal-error" id="modalError"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
