@@ -51,17 +51,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   margin-bottom: 24px;
   padding: 0 4px;
 }
-.logo-icon {
+.logo-img {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 700;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
 }
 .logo-text {

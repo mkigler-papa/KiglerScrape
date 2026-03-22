@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <clipPath id="cl">
+      <rect x="0" y="0" width="110" height="100"/>
+    </clipPath>
+    <clipPath id="cr">
+      <rect x="90" y="100" width="110" height="100"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" rx="40" fill="#3A1B8C"/>
+
+  <!-- Cyan circles — layer behind ring -->
+  <circle cx="68" cy="100" r="44" fill="#0DCBDA"/>
+  <circle cx="132" cy="100" r="44" fill="#0DCBDA"/>
+
+  <!-- Pink/magenta oval ring -->
+  <ellipse cx="100" cy="100" rx="62" ry="33"
+    fill="none" stroke="#E8235E" stroke-width="26"
+    transform="rotate(-42 100 100)"/>
+
+  <!-- Dark rounded-rect hole inside the ring -->
+  <rect x="76" y="88" width="48" height="24" rx="9" fill="#3A1B8C"
+    transform="rotate(-42 100 100)"/>
+
+  <!-- Cyan overlays — drawn on top of ring to create interlock -->
+  <circle cx="68"  cy="100" r="44" fill="#0DCBDA" clip-path="url(#cl)"/>
+  <circle cx="132" cy="100" r="44" fill="#0DCBDA" clip-path="url(#cr)"/>
+</svg>
