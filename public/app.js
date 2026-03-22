@@ -71,9 +71,20 @@ function renderCard(link) {
     </button>`;
   }).join('');
 
-  const thumbHtml = link.thumbnail
-    ? `<img class="card-thumbnail" src="${link.thumbnail}" alt="" loading="lazy" onerror="this.style.display='none'" />`
-    : '';
+  const ytId = getYouTubeId(link.url);
+  let mediaHtml = '';
+  if (ytId) {
+    const ytThumb = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    mediaHtml = `
+      <div class="yt-container" data-ytid="${ytId}">
+        <img class="yt-thumb" src="${ytThumb}" alt="Video thumbnail" />
+        <button class="yt-play-btn" aria-label="Play video">
+          <svg viewBox="0 0 68 48" width="68" height="48"><path d="M66.5 7.7a8.5 8.5 0 0 0-6-6C56 0 34 0 34 0S12 0 7.5 1.7a8.5 8.5 0 0 0-6 6C0 12.3 0 24 0 24s0 11.7 1.5 16.3a8.5 8.5 0 0 0 6 6C12 48 34 48 34 48s22 0 26.5-1.7a8.5 8.5 0 0 0 6-6C68 35.7 68 24 68 24s0-11.7-1.5-16.3z" fill="#ff0000"/><path d="M27 34l18-10-18-10v20z" fill="#fff"/></svg>
+        </button>
+      </div>`;
+  } else if (link.thumbnail) {
+    mediaHtml = `<img class="card-thumbnail" src="${link.thumbnail}" alt="" loading="lazy" onerror="this.style.display='none'" />`;
+  }
 
   return `
     <div class="card" data-id="${link.id}">
@@ -91,7 +102,7 @@ function renderCard(link) {
 
       <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="card-title">${link.title || link.url}</a>
       ${link.summary ? `<p class="card-summary">${link.summary}</p>` : ''}
-      ${thumbHtml}
+      ${mediaHtml}
 
       <div class="card-footer">
         <span class="card-footer-item">
@@ -111,6 +122,14 @@ function renderCard(link) {
 }
 
 function attachCardEvents() {
+  document.querySelectorAll('.yt-play-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const container = btn.closest('.yt-container');
+      const ytId = container.dataset.ytid;
+      container.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+    });
+  });
+
   document.querySelectorAll('.tag-pill').forEach(pill =>
     pill.addEventListener('click', () => setTagFilter(pill.dataset.tag))
   );
@@ -190,6 +209,19 @@ document.getElementById('btnNewLink').addEventListener('click', () => {
 searchInput.addEventListener('input', () => renderLinks(allLinks));
 
 // Add link
+function getYouTubeId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (/youtube\.com/.test(u.hostname)) {
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const m = u.pathname.match(/\/(embed|shorts|v)\/([^/?&]+)/);
+      if (m) return m[2];
+    }
+  } catch {}
+  return null;
+}
+
 function isValidUrl(raw) {
   let str = raw.trim();
   if (!str) return false;

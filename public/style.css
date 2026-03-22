@@ -407,6 +407,43 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   display: block;
 }
 
+/* YouTube embed */
+.yt-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: #000;
+}
+.yt-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.yt-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.2);
+  transition: background 0.2s;
+}
+.yt-play-btn:hover { background: rgba(0,0,0,0.35); }
+.yt-play-btn svg { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); transition: transform 0.15s; }
+.yt-play-btn:hover svg { transform: scale(1.08); }
+.yt-container iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 .card-footer {
   display: flex;
   align-items: center;
