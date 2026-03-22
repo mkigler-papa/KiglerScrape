@@ -50,6 +50,16 @@ app.post('/api/links', async (req, res) => {
   let normalUrl = url.trim();
   if (!/^https?:\/\//i.test(normalUrl)) normalUrl = 'https://' + normalUrl;
 
+  // Validate URL structure
+  try {
+    const parsed = new URL(normalUrl);
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(parsed.hostname)) {
+      return res.status(400).json({ error: 'Invalid URL — hostname does not appear to be a real domain.' });
+    }
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL — please enter a valid web address (e.g. https://example.com).' });
+  }
+
   try {
     const domain = new URL(normalUrl).hostname.replace('www.', '');
 

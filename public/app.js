@@ -190,9 +190,28 @@ document.getElementById('btnNewLink').addEventListener('click', () => {
 searchInput.addEventListener('input', () => renderLinks(allLinks));
 
 // Add link
+function isValidUrl(raw) {
+  let str = raw.trim();
+  if (!str) return false;
+  if (!/^https?:\/\//i.test(str)) str = 'https://' + str;
+  try {
+    const u = new URL(str);
+    // Must have a real hostname with at least one dot (e.g. example.com)
+    return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 async function addLink(url) {
   if (!url) return;
   pasteError.classList.remove('visible');
+  if (!isValidUrl(url)) {
+    pasteError.textContent = 'Invalid URL — please enter a valid web address (e.g. https://example.com)';
+    pasteError.classList.add('visible');
+    urlInput.focus();
+    return;
+  }
   pasteLoader.classList.add('visible');
   btnAdd.disabled = true;
   try {
